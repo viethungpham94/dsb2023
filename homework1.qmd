@@ -129,27 +129,64 @@ print('Answer: It seems like the seasonal holidays are when there are most fligh
 
 For the plane with the greatest number of flights and that had more than 50 seats, please create a table where it flew to during 2013.
 
-Check plane table
-
 ```{r}
+#Just to check data fields
 data(planes)
 ```
 
 ```{r}
+#Just to double check all origins are from NY
 unique(flights$origin)
-unique(flights$tailnum)
+uniquetailnum <- unique(flights$tailnum)
+```
+```{r}
+#Just to check if there are really empty tailnums
+write.csv(uniquetailnum, file="uniquetailnum.csv")
 ```
 
-Answer for Q3:
 
 ```{r}
+#Just to check if there are really empty tailnums
 flights %>% 
-  filter (year==2013) %>%
-  group_by(tailnum) %>% 
-  summarise(Count = n()) %>% 
-  arrange (desc(Count))
+  filter (is.na(tailnum))
+```
 
-print('Answer: It seems unidentified )
+
+
+```{r}
+#Answer for Q3: What plane (specified by the `tailnum` variable) traveled the most times from New York City airports in 2013?
+tailnum_volume_2013 <- flights %>% 
+                        filter (year==2013) %>%
+                        group_by(tailnum) %>% 
+                        summarise(Count = n()) %>% 
+                        arrange (desc(Count))
+tailnum_volume_2013
+
+print('Answer: It seems unidentified flights are most common, followed by N725MQ')
+```
+```{r}
+#Please `left_join()` the resulting table with the table `planes` (also included in the `nycflights13` package)
+merge_plane <- left_join(planes,tailnum_volume_2013)
+merge_plane #while this is following the questions to the wording, it doesn't make sense due to year differences?
+```
+```{r}
+#For the plane with the greatest number of flights and that had more than 50 seats, please create a table where it flew to during 2013
+#Step 1 - check which plane that is
+plane_2013_abv_50_seats <- planes %>% 
+                            filter (year == 2013, seats > 50)
+plane_2013_abv_50_seats_flight_volume <- left_join(plane_2013_abv_50_seats,tailnum_volume_2013) %>% 
+                                            arrange(desc(Count))
+plane_2013_abv_50_seats_flight_volume
+```
+```{r}
+#Step 2: The tailnum is N827JB - check where they flew to
+flights %>% 
+  filter(year == 2013, tailnum == 'N827JB') %>% 
+    group_by(dest) %>% 
+    summarise(Count=n()) %>% 
+    arrange(desc(Count))
+
+print('It seems like # flights to LAX and SFO are the significantly higher')
 ```
 
 ## Problem 4: The `nycflights13` package includes a table (`weather`) that describes the weather during 2013. Use that table to answer the following questions:
@@ -161,7 +198,56 @@ print('Answer: It seems unidentified )
 ```
 
 ```{r}
+#Check weather database
+data(weather)
+```
 
+
+```{r}
+# What is the distribution of temperature (`temp`) in July 2013?
+weather_july_2013 <- weather %>%  #create data for July 2013 only
+                      filter (year == 2013, month == 7)
+temp_july_2013_count <- weather_july_2013 %>% #add frequency of temp in July 2013
+                            group_by(temp) %>% 
+                              summarise (Count=n())
+ggplot(data = temp_july_2013_count, #use data created
+        aes(x = temp, y = Count)) + #plot frequency against value -> distribution view 
+        geom_point()
+print('Answer: The distribution of temp looks vaguely resemblance to a normal distribution')
+```
+```{r}
+#Identify any important outliers in terms of the `wind_speed` variable
+wind_speed_july_2013_count <- weather_july_2013 %>% #add frequency of wind_speed in July 2013
+                            group_by(wind_speed) %>% 
+                              summarise (Count=n())
+ggplot(data = wind_speed_july_2013_count, #use data created
+        aes(x = wind_speed, y = Count)) + #plot frequency against value -> distribution view 
+        geom_point()
+print('Answer: In terms of outliers, wind speed above 20 have very small counts, can be considered outliers')
+```
+```{r}
+#What is the relationship between `dewp` and `humid`?
+ggplot(data=weather, #use overall weather data now
+       aes(x= dewp, y = humid)) + #plot 2 questioned dataframe
+       geom_point()
+print('Answer: It seems there are very little relationship between dewp and humid as the plot show they can be anywhere. A  positive correlation might be observed but variance is high (Rsquare is low)')
+```
+```{r}
+#checking if its true within just July
+ggplot(data=weather_july_2013, #use overall weather data now
+       aes(x= dewp, y = humid)) + #plot 2 questioned dataframe
+       geom_point()
+print('Answer: When looking at just July, it also seems there are very little relationship between dewp and humid as the plot show they can be anywhere. A  positive correlation might be observed (more clearly than overall database) but variance is high (Rsquare is low)')
+```
+
+
+```{r}
+#What is the relationship between `precip` and `visib`?
+ggplot(data=weather, #use overall weather data now
+       aes(x= precip, y = visib)) + #plot 2 questioned dataframe
+        scale_x_log10() + #log x to better see distribution closer to 0
+       geom_point()
+print('Answer: It seems there are very little relationship between dewp and humid as the plot show they can be anywhere and no trendline could be observed')
 ```
 
 ## Problem 5: Use the `flights` and `planes` tables to answer the following questions:
@@ -290,7 +376,7 @@ The age gaps dataset includes "gender" columns, which always contain the values 
 The following is a data dictionary of the variables used
 
 | variable            | class     | description                                                                                             |
-|:--------------------|:----------|:--------------------------------------------------------------------------------------------------------|
+|:--------------|:--------------|:------------------------------------------|
 | movie_name          | character | Name of the film                                                                                        |
 | release_year        | integer   | Release year                                                                                            |
 | director            | character | Director of the film                                                                                    |
