@@ -1,0 +1,42 @@
+```{r}
+install.packages("usethis")
+```
+
+
+```{r}
+library(usethis)
+```
+
+
+```{r}
+use_git_config(user.name = "viethungpham94", #your github user name
+               user.email = "viethungpham94@gmail.com") # the email you used when you signed upo with github
+
+# Personal Access Tokens for HTTPS: https://happygitwithr.com/https-pat.html
+
+# In the RStudio console type the following
+usethis::create_github_token()
+
+# Accept defaults and click “Generate token”.
+# Copy the generated PAT to your clipboard. Or leave that browser window open and available 
+# for a while, so you can come back to copy the PAT.
+```
+
+
+```{r}
+# Store the PAT explicitly. In the RStudio console type the following gitcreds::gitcreds_set() to get a prompt where you can paste your PAT:
+gitcreds::gitcreds_set()
+```
+
+```{r}
+blogdown::serve_site()
+```
+
+
+```{r}
+git add -A
+git commit -m "initial commit"
+git pull
+git push
+```
+

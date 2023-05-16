@@ -86,7 +86,7 @@ flights %>%
 ```{r}
 # Were delayed by at least an hour, but made up over 30 minutes in flight
 flights %>%                           
-    filter(dep_delay>=60|arr_delay<=30)
+    filter(dep_delay>=60,arr_delay<=30)
 ```
 
 ## Problem 2: What months had the highest and lowest proportion of cancelled flights? Interpret any seasonal patterns. To determine if a flight was cancelled use the following code
@@ -121,7 +121,7 @@ monthly_count %>% #calculate % flights cancelled
   mutate(cancel_perc=Count_cancelled/Count) %>% 
   arrange(desc(cancel_perc))
 
-print('Answer: It seems like the seasonal holidays are when there are most flight cancelled (summer holiday, Xmas and New year, and Febuary - Chinese New Year)')
+#'Answer: It seems like the seasonal holidays are when there are most flight cancelled (summer holiday, Xmas and New year, and Febuary - Chinese New Year)')
 
 ```
 
@@ -138,6 +138,7 @@ data(planes)
 #Just to double check all origins are from NY
 unique(flights$origin)
 uniquetailnum <- unique(flights$tailnum)
+unique(flights$year)
 ```
 ```{r}
 #Just to check if there are really empty tailnums
@@ -162,31 +163,30 @@ tailnum_volume_2013 <- flights %>%
                         arrange (desc(Count))
 tailnum_volume_2013
 
-print('Answer: It seems unidentified flights are most common, followed by N725MQ')
+#'Answer: It seems unidentified flights are most common, followed by N725MQ')
 ```
 ```{r}
 #Please `left_join()` the resulting table with the table `planes` (also included in the `nycflights13` package)
-merge_plane <- left_join(planes,tailnum_volume_2013)
-merge_plane #while this is following the questions to the wording, it doesn't make sense due to year differences?
+merge_plane <- left_join(planes,tailnum_volume_2013) # note that I understand 'year' datafield in planes dataset is for year of manufacturing
+merge_plane
 ```
 ```{r}
 #For the plane with the greatest number of flights and that had more than 50 seats, please create a table where it flew to during 2013
 #Step 1 - check which plane that is
-plane_2013_abv_50_seats <- planes %>% 
-                            filter (year == 2013, seats > 50)
-plane_2013_abv_50_seats_flight_volume <- left_join(plane_2013_abv_50_seats,tailnum_volume_2013) %>% 
-                                            arrange(desc(Count))
+plane_2013_abv_50_seats_flight_volume <- merge_plane %>% 
+                                            filter (seats > 50) %>% 
+                                              arrange(desc(Count))
 plane_2013_abv_50_seats_flight_volume
 ```
 ```{r}
-#Step 2: The tailnum is N827JB - check where they flew to
+#Step 2: The tailnum is N328AA - check where they flew to
 flights %>% 
-  filter(year == 2013, tailnum == 'N827JB') %>% 
+  filter(year == 2013, tailnum == 'N328AA') %>% 
     group_by(dest) %>% 
     summarise(Count=n()) %>% 
     arrange(desc(Count))
 
-print('It seems like # flights to LAX and SFO are the significantly higher')
+#'It seems like # flights to LAX is significantly higher')
 ```
 
 ## Problem 4: The `nycflights13` package includes a table (`weather`) that describes the weather during 2013. Use that table to answer the following questions:
@@ -213,31 +213,33 @@ temp_july_2013_count <- weather_july_2013 %>% #add frequency of temp in July 201
 ggplot(data = temp_july_2013_count, #use data created
         aes(x = temp, y = Count)) + #plot frequency against value -> distribution view 
         geom_point()
-print('Answer: The distribution of temp looks vaguely resemblance to a normal distribution')
+#'Answer: The distribution of temp looks vaguely resemblance to a normal distribution')
 ```
 ```{r}
 #Identify any important outliers in terms of the `wind_speed` variable
 wind_speed_july_2013_count <- weather_july_2013 %>% #add frequency of wind_speed in July 2013
                             group_by(wind_speed) %>% 
-                              summarise (Count=n())
+                              summarise (Count=n()) 
 ggplot(data = wind_speed_july_2013_count, #use data created
         aes(x = wind_speed, y = Count)) + #plot frequency against value -> distribution view 
-        geom_point()
-print('Answer: In terms of outliers, wind speed above 20 have very small counts, can be considered outliers')
+        geom_point() #scatter plot
+#'Answer: In terms of outliers, wind speed above 20 have very small counts, can be considered outliers')
 ```
 ```{r}
 #What is the relationship between `dewp` and `humid`?
 ggplot(data=weather, #use overall weather data now
        aes(x= dewp, y = humid)) + #plot 2 questioned dataframe
-       geom_point()
-print('Answer: It seems there are very little relationship between dewp and humid as the plot show they can be anywhere. A  positive correlation might be observed but variance is high (Rsquare is low)')
+       geom_point()+ #scatter plot
+      geom_smooth(method=lm) #add trendline
+#'Answer: A  positive correlation might be observed though with low R-square expected as plots are scattered everywhere')
 ```
 ```{r}
 #checking if its true within just July
 ggplot(data=weather_july_2013, #use overall weather data now
        aes(x= dewp, y = humid)) + #plot 2 questioned dataframe
-       geom_point()
-print('Answer: When looking at just July, it also seems there are very little relationship between dewp and humid as the plot show they can be anywhere. A  positive correlation might be observed (more clearly than overall database) but variance is high (Rsquare is low)')
+       geom_point()+ #scatter plot
+      geom_smooth(method=lm) #add trendline
+#'Answer: A  positive correlation might be observed (more clearly than overall database) though with low R-square expected as plots are scattered everywhere')
 ```
 
 
@@ -246,8 +248,9 @@ print('Answer: When looking at just July, it also seems there are very little re
 ggplot(data=weather, #use overall weather data now
        aes(x= precip, y = visib)) + #plot 2 questioned dataframe
         scale_x_log10() + #log x to better see distribution closer to 0
-       geom_point()
-print('Answer: It seems there are very little relationship between dewp and humid as the plot show they can be anywhere and no trendline could be observed')
+       geom_point() + #scatter plot
+      geom_smooth(method=lm) #add trendline
+#'Answer: A negative correlation is observed, though with low R-square expected as plots are scattered everywhere')
 ```
 
 ## Problem 5: Use the `flights` and `planes` tables to answer the following questions:
@@ -257,9 +260,94 @@ print('Answer: It seems there are very little relationship between dewp and humi
 -   What are the five most common manufacturers?
 -   Has the distribution of manufacturer changed over time as reflected by the airplanes flying from NYC in 2013? (Hint: you may need to use case_when() to recode the manufacturer name and collapse rare vendors into a category called Other.)
 ```
+```{r}
+#How many planes have a missing date of manufacture?
+planes %>% 
+  group_by(year) %>% 
+    summarise(Count=n()) %>% 
+    filter(is.na(year))
+print ('Answer: There are 70 planes that missing date of manufacture')
+```
 
 ```{r}
+#What are the five most common manufacturers?
+planes %>% 
+  group_by(manufacturer) %>% 
+    summarise(Count=n()) %>% 
+    arrange(desc(Count))
+print ('Answer: 5 most common manufacturers are BOEING, AIRBUS INDUSTRIE, BOMBARDIER INC, AIRBUS, and EMBRAER')
+```
+```{r}
+#Has the distribution of manufacturer changed over time as reflected by the airplanes flying from NYC in 2013? (Hint: you may need to use case_when() to recode the manufacturer name and collapse rare vendors into a category called Other.)
+#Checking manufacturer distribution in flight data in 2013 i.e., # flights by each manufacturer
+merged_flights_plane <- left_join(flights,planes,by="tailnum") #Join manufacturer data into flight data
 
+flights_2013_mnf_count <- merged_flights_plane %>% #create a subset table on manufacturer counts
+                          group_by(manufacturer) %>% 
+                            summarise(Count=n()) %>% 
+                              arrange(desc(Count))
+
+ggplot(data=flights_2013_mnf_count,
+       aes(x=reorder(manufacturer,-Count), y = Count)) + #plot in descend order of frequency
+        geom_point()+
+        scale_y_log10() 
+
+flights_2013_mnf_count
+
+#We note that the market is concentrated with the top 5 (excluding NA)
+```
+
+
+```{r}
+Total_flights <- flights_2013_mnf_count %>% 
+                    summarise(sum(Count)) #calculating #total flights
+
+Top_5_non_NA <- flights_2013_mnf_count %>% 
+            filter (!is.na(manufacturer)) #filter out #flights with planes with unidentified manufacturer
+
+Top_5_flights <- top_n(Top_5_non_NA,5) %>% 
+                  summarise(sum(Count)) #calculating #flights that are with planes of top 5 manufacturers
+
+Top_5_flights/Total_flights #calculating % of total flights that are with planes of top 5 manufacturers
+
+# We note that the top 5 manufacturers taking 79% of total flights in NYC in 2019
+```
+
+```{r}
+#Check distribution of manufacturer over time based on manufacturer date
+flights_mnf_count_by_year <- merged_flights_plane %>% #create a subset table on manufacturer counts by year
+                              group_by(manufacturer,year.y) %>% 
+                                summarise(Count=n()) %>% 
+                                  arrange(year.y,desc(Count))
+ggplot(data=flights_mnf_count_by_year,
+        aes(x=reorder(manufacturer,-Count), y = Count))+ #plot in descend order of frequency
+        geom_point()+
+        scale_y_log10() +
+        facet_wrap(~year.y)
+flights_mnf_count_by_year
+#Answer: Based on flight counts by manufacturers by manufacturing years of planes that flew in 2013 from NYC airports, we can see that over years, as more players entering the market, the mix of top players changed, however the shape of distribution would stays similar shape as market concentrated on a few leading players e.g., Boeing, Airbus, as identified above. Of course we would need actual flight data over years to observe real shift in distribution as this is very indicative (e.g., older planes would not be able to fly and therefore the view over years will not be completed)  
+```
+```{r}
+#We can also do similar analysis on the planes (not the flights) as below:
+
+#create a subset table on manufacturer counts by year
+planes_mnf_count_by_year <- planes %>% 
+                              group_by(manufacturer,year) %>% 
+                                summarise(Count=n()) %>% 
+                                  arrange(year,desc(Count))
+
+ggplot(data=planes_mnf_count_by_year,
+        aes(x=reorder(manufacturer,-Count), y = Count))+ #plot in descend order of frequency
+        geom_point()+
+        scale_y_log10() +
+        facet_wrap(~year)
+
+planes_mnf_count_by_year
+#We saw similar observation to when we analysised flights count by plane manufacturers
+```
+
+
+```{r}
 ```
 
 ## Problem 6: Use the `flights` and `planes` tables to answer the following questions:
@@ -270,7 +358,45 @@ print('Answer: It seems there are very little relationship between dewp and humi
 ```
 
 ```{r}
+# What is the oldest plane (specified by the tailnum variable) that flew from New York City airports in 2013?
 
+merged_flights_plane %>% 
+  group_by(tailnum,year.y) %>% 
+    arrange(year.y)
+
+#Answer: The oldest plane is N381AA, manufactured in 1956
+
+```
+```{r}
+#How many airplanes that flew from New York City are included in the planes table?
+unique_tailnum_flight <- distinct(flights,tailnum) %>% 
+                          mutate(tailnum_flight_data = tailnum)
+unique_tailnum_plane <- distinct(planes,tailnum) %>% 
+                          mutate(tailnum_plane_data = tailnum)
+
+full_join_tailnum <- full_join(unique_tailnum_flight,unique_tailnum_plane)
+
+full_join_tailnum
+
+no_plane_flightdata <- full_join_tailnum %>% 
+                          filter(!is.na(tailnum_flight_data)) %>%  #filter tailnum appears in flight data
+                            summarise(Count=n()) #calculate #tailnum appears in flight data
+
+no_plane_planedata <- full_join_tailnum %>% 
+                          filter(!is.na(tailnum_plane_data)) %>%  #filter tailnum appears in flight data
+                            summarise(Count=n()) #calculate #tailnum appears in flight data
+
+no_plane_planedata_in_flightdata <- full_join_tailnum %>% 
+                                      filter(!is.na(tailnum_flight_data)) %>%#filter tailnum appears in flight data
+                                        filter(!is.na(tailnum_plane_data)) %>%#filter tailnum appears in both plane and flight data
+                                          summarise(Count=n()) #calculate #tailnum appears in flight data
+
+no_plane_planedata_in_flightdata
+no_plane_planedata_in_flightdata/no_plane_flightdata
+no_plane_planedata_in_flightdata/no_plane_planedata
+
+#There are 3322 planes that flew from NYC included in the plane table, taking 82% of all identifiable planes in flight data
+                                        
 ```
 
 ## Problem 7: Use the `nycflights13` to answer the following questions:
@@ -281,6 +407,17 @@ print('Answer: It seems there are very little relationship between dewp and humi
 ```
 
 ```{r}
+#What is the median arrival delay on a month-by-month basis in each airport?
+a <-    flights %>% 
+      filter(!is.na(arr_delay)) %>% 
+        group_by(month, origin) %>% #assuming we are viewing by origin airport as oppose to destination airport
+          summarise(median(arr_delay)) %>% 
+            arrange(origin, month)
+
+
+```
+```{r}
+#For each airline, plot the median arrival delay for each month and origin airport
 
 ```
 
